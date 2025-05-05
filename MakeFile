@@ -1,0 +1,37 @@
+.PHONY: build run clean tailwind watch-tailwind dev
+
+# Go build variables
+BINARY_NAME=gogin
+GO_FILES=$(wildcard *.go)
+
+# Default target
+all: tailwind build
+
+# Build the Go application
+build:
+	@go build -o bin/$(BINARY_NAME) $(GO_FILES)
+
+# Run the application
+run: build
+	./$(BINARY_NAME)
+
+# Clean build artifacts
+clean:
+	rm -f $(BINARY_NAME)
+	rm -f ./static/output/style.css
+
+tidy:
+ @go mod tidy
+
+# Build Tailwind CSS
+tailwind:
+	npx @tailwindcss/cli -i ./static/css/src/input.css -o ./static/css/output/style.css
+
+# Watch Tailwind CSS files for changes during development
+watch-tailwind:
+	npx @tailwindcss/cli -i ./static/src/css/input.css -o ./static/css/output/style.css --watch
+
+# Development mode - watch Tailwind CSS files and run the application
+dev:
+	make tailwind
+	go run $(GO_FILES)
