@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	models "github.com/Mpinyaz/GinWebApp/internal/models/users"
@@ -10,24 +11,20 @@ import (
 	"time"
 )
 
-const (
-	jwtCookieName        = "auth_token"
-	accessTokenDuration  = 24 * time.Hour * 7
-	refreshTokenDuration = 24 * time.Hour * 30
-	cookieDomain         = "localhost"
-	cookieSecure         = false
-	cookieHTTPOnly       = true
-	cookiePath           = "/"
-	accessTokenSecret    = "access_secret_key_change_in_production"
-	refreshTokenSecret   = "refresh_secret_key_change_in_production"
-)
-
 type JWTClaims struct {
 	UserID    uuid.UUID   `json:"user_id"`
 	Username  string      `json:"username"`
 	Role      models.Role `json:"role"`
 	TokenType string      `json:"token_type"`
 	jwt.RegisteredClaims
+}
+type TokenKeys struct {
+	AccessTokenDuration  time.Duration
+	AccessTokenSecret    string
+	RefreshTokenDuration time.Duration
+	RefreshTokenSecret   string
+	AccessTokenMaxAge    int
+	RefreshTokenMaxAge   int
 }
 
 type TokenResponse struct {
@@ -42,7 +39,7 @@ type RefreshRequest struct {
 type RefreshToken struct {
 	gorm.Model
 	Token     string    `gorm:"not null;uniqueIndex"`
-	UserID    string    `gorm:"not null;index"`
+	UserID    uuid.UUID `gorm:"not null;index"`
 	ExpiresAt time.Time `gorm:"not null;index"`
 	Revoked   bool      `gorm:"default:false;index"`
 }
@@ -54,6 +51,17 @@ type BlacklistedToken struct {
 }
 
 func generateJWT(user models.User, tokenType string, expiration time.Duration, secretKey string) (string, error) {
+	decodedPrivateKey, err := base64.StdEncoding.DecodeString(secretKey)
+	if err != nil {
+		return "", fmt.Errorf("could not decode key: %w", err)
+	}
+
+	key, err := jwt.ParseRSAPrivateKeyFromPEM(decodedPrivateKey)
+
+	if err != nil {
+		return "", fmt.Errorf("create: parse key: %w", err)
+	}
+
 	claims := JWTClaims{
 		UserID:    user.ID,
 		Username:  user.Username,
@@ -69,7 +77,7 @@ func generateJWT(user models.User, tokenType string, expiration time.Duration, s
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	signedToken, err := token.SignedString([]byte(secretKey))
+	signedToken, err := token.SignedString(key)
 
 	if err != nil {
 		return "", fmt.Errorf("failed to sign %s token: %w", tokenType, err)
@@ -78,34 +86,25 @@ func generateJWT(user models.User, tokenType string, expiration time.Duration, s
 	return signedToken, nil
 }
 
-func generateAccessToken(user models.User) (string, error) {
-	return generateJWT(user, "access", accessTokenDuration, accessTokenSecret)
-}
-
-func generateRefreshToken(user models.User) (string, error) {
-	return generateJWT(user, "refresh", refreshTokenDuration, refreshTokenSecret)
-}
-
-func GenerateTokens(user models.User, db *gorm.DB) (TokenResponse, error) {
-	accessToken, err := generateAccessToken(user)
+func GenerateTokens(user models.User, db *gorm.DB, tokenKeys TokenKeys) (TokenResponse, error) {
+	accessToken, err := generateJWT(user, "access", tokenKeys.AccessTokenDuration, tokenKeys.AccessTokenSecret)
 	if err != nil {
 		return TokenResponse{}, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	refreshToken, err := generateRefreshToken(user)
+	refreshToken, err := generateJWT(user, "refresh", tokenKeys.RefreshTokenDuration, tokenKeys.RefreshTokenSecret)
 	if err != nil {
 		return TokenResponse{}, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	// Revoke existing refresh tokens for the user
 	if err := db.Model(&RefreshToken{}).Where("user_id = ? AND revoked = ?", user.ID, false).Update("revoked", true).Error; err != nil {
 		return TokenResponse{}, fmt.Errorf("failed to revoke previous refresh tokens: %w", err)
 	}
 
 	tokenRecord := RefreshToken{
-		UserID:    user.ID.String(),
+		UserID:    user.ID,
 		Token:     refreshToken,
-		ExpiresAt: time.Now().Add(refreshTokenDuration).In(time.UTC), // Use UTC
+		ExpiresAt: time.Now().Add(tokenKeys.RefreshTokenDuration).In(time.UTC),
 		Revoked:   false,
 	}
 
@@ -116,17 +115,26 @@ func GenerateTokens(user models.User, db *gorm.DB) (TokenResponse, error) {
 	return TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		ExpiresIn:    int(accessTokenDuration.Seconds()),
+		ExpiresIn:    int(tokenKeys.AccessTokenDuration.Seconds()),
 	}, nil
 }
 
-// VerifyToken verifies the token signature and expiration.  It does NOT check the database.
-func VerifyToken(tokenString string, tokenType string, secretKey string) (*JWTClaims, error) {
+func VerifyToken(tokenString string, tokenType string, publicKey string) (*JWTClaims, error) {
+	decodedPublicKey, err := base64.StdEncoding.DecodeString(publicKey)
+	if err != nil {
+		return nil, fmt.Errorf("could not decode public key: %w", err)
+	}
+
+	key, err := jwt.ParseRSAPublicKeyFromPEM(decodedPublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse public key: %w", err)
+	}
+
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(secretKey), nil
+		return key, nil
 	})
 
 	if err != nil {
@@ -138,7 +146,7 @@ func VerifyToken(tokenString string, tokenType string, secretKey string) (*JWTCl
 		return nil, fmt.Errorf("invalid or mismatched %s token", tokenType)
 	}
 
-	// Check expiration explicitly.  The jwt library checks it, but we want to be sure.
+	// Check expiration explicitly. The jwt library checks it, but we want to be sure.
 	if claims.ExpiresAt != nil && !claims.ExpiresAt.Time.After(time.Now().In(time.UTC)) {
 		return nil, fmt.Errorf("%s token has expired", tokenType)
 	}
@@ -146,10 +154,10 @@ func VerifyToken(tokenString string, tokenType string, secretKey string) (*JWTCl
 	return claims, nil
 }
 
-func VerifyRefreshToken(db *gorm.DB, refreshTokenString string) (*JWTClaims, error) {
-	claims, err := VerifyToken(refreshTokenString, "refresh", refreshTokenSecret)
+func VerifyRefreshToken(db *gorm.DB, refreshTokenString string, publicKey string) (*JWTClaims, error) {
+	claims, err := VerifyToken(refreshTokenString, "refresh", publicKey)
 	if err != nil {
-		return nil, err //  VerifyToken already wraps the error with context
+		return nil, err
 	}
 
 	var refreshTokenRecord RefreshToken
@@ -164,10 +172,6 @@ func VerifyRefreshToken(db *gorm.DB, refreshTokenString string) (*JWTClaims, err
 
 	if refreshTokenRecord.Revoked {
 		return nil, fmt.Errorf("refresh token has been revoked")
-	}
-
-	if refreshTokenRecord.ExpiresAt.Before(time.Now().In(time.UTC)) {
-		return nil, fmt.Errorf("refresh token has expired")
 	}
 
 	return claims, nil

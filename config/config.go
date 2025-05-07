@@ -1,9 +1,12 @@
 package config
 
 import (
+	"context"
+	"errors"
+	"time"
+
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
-	"time"
 )
 
 var DB *gorm.DB
@@ -29,6 +32,10 @@ type appConfig struct {
 	RefreshTokenMaxAge     int           `mapstructure:"REFRESH_TOKEN_MAXAGE"`
 }
 
+type ctxKey string
+
+const configKey ctxKey = "appConfig"
+
 func LoadConfig(path string) (config *appConfig, err error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigType("env")
@@ -43,4 +50,16 @@ func LoadConfig(path string) (config *appConfig, err error) {
 
 	err = viper.Unmarshal(&config)
 	return
+}
+
+func WithConfig(ctx context.Context, config *appConfig) context.Context {
+	return context.WithValue(ctx, configKey, config)
+}
+
+func GetConfig(ctx context.Context) (*appConfig, error) {
+	config, ok := ctx.Value(configKey).(*appConfig)
+	if !ok {
+		return nil, errors.New("app config is not in context")
+	}
+	return config, nil
 }
