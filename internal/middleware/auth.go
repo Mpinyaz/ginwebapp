@@ -18,7 +18,7 @@ type JWTClaims struct {
 	TokenType string      `json:"token_type"`
 	jwt.RegisteredClaims
 }
-type TokenKeys struct {
+type TokenConfig struct {
 	AccessTokenDuration  time.Duration
 	AccessTokenSecret    string
 	RefreshTokenDuration time.Duration
@@ -50,7 +50,7 @@ type BlacklistedToken struct {
 	ExpiresAt time.Time `gorm:"not null;index"`
 }
 
-func generateJWT(user models.User, tokenType string, expiration time.Duration, secretKey string) (string, error) {
+func GenerateJWT(user models.User, tokenType string, expiration time.Duration, secretKey string) (string, error) {
 	decodedPrivateKey, err := base64.StdEncoding.DecodeString(secretKey)
 	if err != nil {
 		return "", fmt.Errorf("could not decode key: %w", err)
@@ -86,13 +86,13 @@ func generateJWT(user models.User, tokenType string, expiration time.Duration, s
 	return signedToken, nil
 }
 
-func GenerateTokens(user models.User, db *gorm.DB, tokenKeys TokenKeys) (TokenResponse, error) {
-	accessToken, err := generateJWT(user, "access", tokenKeys.AccessTokenDuration, tokenKeys.AccessTokenSecret)
+func GenerateTokens(user models.User, db *gorm.DB, tokenKeys TokenConfig) (TokenResponse, error) {
+	accessToken, err := GenerateJWT(user, "access", tokenKeys.AccessTokenDuration, tokenKeys.AccessTokenSecret)
 	if err != nil {
 		return TokenResponse{}, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	refreshToken, err := generateJWT(user, "refresh", tokenKeys.RefreshTokenDuration, tokenKeys.RefreshTokenSecret)
+	refreshToken, err := GenerateJWT(user, "refresh", tokenKeys.RefreshTokenDuration, tokenKeys.RefreshTokenSecret)
 	if err != nil {
 		return TokenResponse{}, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -154,24 +154,10 @@ func VerifyToken(tokenString string, tokenType string, publicKey string) (*JWTCl
 	return claims, nil
 }
 
-func VerifyRefreshToken(db *gorm.DB, refreshTokenString string, publicKey string) (*JWTClaims, error) {
+func VerifyRefreshToken(refreshTokenString string, publicKey string) (*JWTClaims, error) {
 	claims, err := VerifyToken(refreshTokenString, "refresh", publicKey)
 	if err != nil {
 		return nil, err
-	}
-
-	var refreshTokenRecord RefreshToken
-	if err := db.Where("token = ? AND user_id = ? AND revoked = ? AND expires_at > ?",
-		refreshTokenString, claims.UserID.String(), false, time.Now().In(time.UTC),
-	).First(&refreshTokenRecord).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("refresh token not found or invalid")
-		}
-		return nil, fmt.Errorf("failed to query refresh token: %w", err)
-	}
-
-	if refreshTokenRecord.Revoked {
-		return nil, fmt.Errorf("refresh token has been revoked")
 	}
 
 	return claims, nil

@@ -11,7 +11,7 @@ import (
 
 var DB *gorm.DB
 
-type appConfig struct {
+type AppConfig struct {
 	Port     int    `mapstructure:"PORT"`
 	DBUrl    string `mapstructure:"DB_URL"`
 	Database struct {
