@@ -1,4 +1,4 @@
-package main
+package store
 
 import (
 	"fmt"
@@ -7,14 +7,11 @@ import (
 	models "github.com/Mpinyaz/GinWebApp/internal/models/users"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
 )
 
-func main() {
-	config, err := config.LoadConfig(".")
-	if err != nil {
-		log.Fatalf("Error loading config: %v", err)
-	}
+// SetupDatabase connects to the database, performs automigration, and returns the DB connection.
+
+func initDB(config config.AppConfig) (*gorm.DB, error) {
 
 	dsn := config.DBUrl
 	if dsn == "" {
@@ -32,26 +29,15 @@ func main() {
 	// Connect to the database
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
+	// AutoMigrate the schema
 	err = db.AutoMigrate(&models.User{})
 	if err != nil {
-		log.Fatalf("Failed to automigrate schema: %v", err)
+		return nil, fmt.Errorf("failed to automigrate schema: %w", err)
 	}
 
 	fmt.Println("Database migration completed successfully!")
-	// Get the underlying SQL DB connection
-	sqlDB, err := db.DB()
-	if err != nil {
-		log.Fatalf("Failed to get DB instance: %v", err)
-	}
-
-	// Close the database connection
-	err = sqlDB.Close()
-	if err != nil {
-		log.Fatalf("Failed to close database connection: %v", err)
-	}
-
-	fmt.Println("Database connection closed properly.")
+	return db, nil
 }

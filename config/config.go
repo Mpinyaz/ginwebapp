@@ -36,7 +36,7 @@ type ctxKey string
 
 const configKey ctxKey = "appConfig"
 
-func LoadConfig(path string) (config *appConfig, err error) {
+func LoadConfig(path string) (config *AppConfig, err error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigType("env")
 	viper.SetConfigName(".env")
@@ -50,16 +50,4 @@ func LoadConfig(path string) (config *appConfig, err error) {
 
 	err = viper.Unmarshal(&config)
 	return
-}
-
-func WithConfig(ctx context.Context, config *appConfig) context.Context {
-	return context.WithValue(ctx, configKey, config)
-}
-
-func GetConfig(ctx context.Context) (*appConfig, error) {
-	config, ok := ctx.Value(configKey).(*appConfig)
-	if !ok {
-		return nil, errors.New("app config is not in context")
-	}
-	return config, nil
 }

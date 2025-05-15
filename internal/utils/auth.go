@@ -1,8 +1,7 @@
-package auth
+package utils
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	models "github.com/Mpinyaz/GinWebApp/internal/models/users"
 	"github.com/golang-jwt/jwt/v5"

@@ -2,17 +2,19 @@ package handlers
 
 import (
 	"errors"
-	config "github.com/Mpinyaz/GinWebApp/config"
-	"github.com/Mpinyaz/GinWebApp/internal/dtos"
-	auth "github.com/Mpinyaz/GinWebApp/internal/middleware"
-	models "github.com/Mpinyaz/GinWebApp/internal/models/users"
-	"github.com/Mpinyaz/GinWebApp/internal/utils"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	config "github.com/Mpinyaz/GinWebApp/config"
+	"github.com/Mpinyaz/GinWebApp/internal/dtos"
+	auth "github.com/Mpinyaz/GinWebApp/internal/middleware"
+	models "github.com/Mpinyaz/GinWebApp/internal/models/users"
+	"github.com/Mpinyaz/GinWebApp/internal/repositories"
+	"github.com/Mpinyaz/GinWebApp/internal/utils"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
@@ -86,6 +88,7 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 }
 
 func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
+	userRepo := repositories.NewUserRepository(ac.DB)
 	var payload *dtos.LoginRequest
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -93,19 +96,23 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 		return
 	}
 
-	var user models.User
-	var result *gorm.DB
+	var user *models.User
+	var err error
 	emailRegex := `^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`
 	isValidEmail := regexp.MustCompile(emailRegex).MatchString(payload.LoginIndentifier)
 
 	if isValidEmail {
-		result = ac.DB.Where("email = LOWER(?)", payload.LoginIndentifier).First(&user)
+		user, err = userRepo.FindByEmail(payload.LoginIndentifier)
 	} else {
-		result = ac.DB.Where("username = LOWER(?)", payload.LoginIndentifier).First(&user)
+		user, err = userRepo.FindByUserame(payload.LoginIndentifier) // Corrected function name
 	}
 
-	if result.Error != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": "Invalid email or Password"})
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": "Invalid email or Password"})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Database error: " + err.Error()}) //handle other db errors
+		}
 		return
 	}
 
@@ -114,7 +121,7 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 		return
 	}
 
-	tokenInfo := auth.TokenConfig{
+	tokenInfo := utils.TokenConfig{
 		AccessTokenSecret:    ac.Config.AccessTokenPrivateKey,
 		AccessTokenDuration:  time.Duration(ac.Config.AccessTokenMaxAge) * time.Minute,
 		RefreshTokenSecret:   ac.Config.RefreshTokenPrivateKey,
@@ -123,7 +130,7 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 		RefreshTokenMaxAge:   ac.Config.RefreshTokenMaxAge,
 	}
 
-	tokens, err := auth.GenerateTokens(user, ac.DB, tokenInfo)
+	tokens, err := utils.GenerateTokens(*user, ac.DB, tokenInfo)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to generate tokens"})
 		return
@@ -160,7 +167,7 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 func (ac *AuthHandler) RefreshAccessTokenHandler(ctx *gin.Context) {
 
 	message := "could not refresh access token"
-
+	userRepo := repositories.NewUserRepository(ac.DB)
 	cookie, err := ctx.Cookie("refresh_token")
 
 	if err != nil {
@@ -168,9 +175,9 @@ func (ac *AuthHandler) RefreshAccessTokenHandler(ctx *gin.Context) {
 		return
 	}
 
-	claims, err := auth.VerifyRefreshToken(cookie, ac.Config.RefreshTokenPublicKey)
+	claims, err := utils.VerifyRefreshToken(cookie, ac.Config.RefreshTokenPublicKey)
 
-	var refreshTokenRecord auth.RefreshToken
+	var refreshTokenRecord utils.RefreshToken
 	result := ac.DB.Where("token = ? AND user_id = ? AND revoked = ? AND expires_at > ?",
 		cookie, claims.UserID.String(), false, time.Now().In(time.UTC),
 	).First(&refreshTokenRecord)
@@ -189,19 +196,19 @@ func (ac *AuthHandler) RefreshAccessTokenHandler(ctx *gin.Context) {
 		return
 	}
 
-	var user models.User
-	if err := ac.DB.First(&user, "id = ?", claims.UserID).Error; err != nil {
+	user, err := userRepo.FindByID(claims.UserID)
+	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to fetch user", "error": err.Error()})
 		return
 	}
 
-	tokenInfo := auth.TokenConfig{
+	tokenInfo := utils.TokenConfig{
 		AccessTokenSecret:   ac.Config.AccessTokenPrivateKey,
 		AccessTokenDuration: time.Duration(ac.Config.AccessTokenMaxAge) * time.Minute,
 		AccessTokenMaxAge:   ac.Config.AccessTokenMaxAge,
 	}
 
-	token, err := auth.GenerateJWT(user, "access", tokenInfo.AccessTokenDuration, tokenInfo.AccessTokenSecret)
+	token, err := utils.GenerateJWT(*user, "access", tokenInfo.AccessTokenDuration, tokenInfo.AccessTokenSecret)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to generate tokens"})
 		return
@@ -217,7 +224,7 @@ func (ac *AuthHandler) RefreshAccessTokenHandler(ctx *gin.Context) {
 	})
 }
 
-func (ac *AuthHandler) LogoutUser(ctx *gin.Context) {
+func (ac *AuthHandler) Logout(ctx *gin.Context) {
 	ctx.SetCookie("access_token", "", -1, "/", "localhost", false, true)
 	ctx.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "", -1, "/", "localhost", false, false)
