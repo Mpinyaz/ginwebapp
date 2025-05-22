@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	config "github.com/Mpinyaz/GinWebApp/config"
 	models "github.com/Mpinyaz/GinWebApp/internal/models/users"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
 )
 
 func main() {

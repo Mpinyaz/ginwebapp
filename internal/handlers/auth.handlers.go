@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"regexp"
@@ -8,22 +9,25 @@ import (
 	"time"
 
 	config "github.com/Mpinyaz/GinWebApp/config"
+	"github.com/Mpinyaz/GinWebApp/internal/auth"
 	"github.com/Mpinyaz/GinWebApp/internal/dtos"
-	auth "github.com/Mpinyaz/GinWebApp/internal/middleware"
 	models "github.com/Mpinyaz/GinWebApp/internal/models/users"
 	"github.com/Mpinyaz/GinWebApp/internal/repositories"
-	"github.com/Mpinyaz/GinWebApp/internal/utils"
+	utils "github.com/Mpinyaz/GinWebApp/internal/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
 	DB     *gorm.DB
-	Config *config.AppConfig
+	Redis  *redis.Client
+	Config *config.AppCfg
+	CTX    *context.Context
 }
 
-func NewAuthHandler(DB *gorm.DB, Config *config.AppConfig) AuthHandler {
-	return AuthHandler{DB, Config}
+func NewAuthHandler(DB *gorm.DB, Redis *redis.Client, Config *config.AppCfg, CTX *context.Context) AuthHandler {
+	return AuthHandler{DB, Redis, Config, CTX}
 }
 
 func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
@@ -84,11 +88,11 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{"status": "success", "data": gin.H{"user": userResponse}})
-
 }
 
 func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 	userRepo := repositories.NewUserRepository(ac.DB)
+	authService := auth.NewAuthService(ac.DB, ac.Config)
 	var payload *dtos.LoginRequest
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -111,7 +115,7 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": "Invalid email or Password"})
 		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Database error: " + err.Error()}) //handle other db errors
+			ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Database error: " + err.Error()}) // handle other db errors
 		}
 		return
 	}
@@ -121,25 +125,21 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 		return
 	}
 
-	tokenInfo := utils.TokenConfig{
-		AccessTokenSecret:    ac.Config.AccessTokenPrivateKey,
-		AccessTokenDuration:  time.Duration(ac.Config.AccessTokenMaxAge) * time.Minute,
-		RefreshTokenSecret:   ac.Config.RefreshTokenPrivateKey,
-		RefreshTokenDuration: time.Duration(ac.Config.RefreshTokenMaxAge) * time.Minute,
-		AccessTokenMaxAge:    ac.Config.AccessTokenMaxAge,
-		RefreshTokenMaxAge:   ac.Config.RefreshTokenMaxAge,
-	}
+	// Get device info from headers
+	userAgent := ctx.GetHeader("User-Agent")
+	ipAddress := ctx.ClientIP()
 
-	tokens, err := utils.GenerateTokens(*user, ac.DB, tokenInfo)
+	tokens, err := authService.GenerateTokens(*user, ipAddress, userAgent)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to generate tokens"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to generate tokens: " + err.Error()})
 		return
 	}
 
 	// Set cookies for the tokens
-	ctx.SetCookie("access_token", tokens.AccessToken, tokenInfo.AccessTokenMaxAge*60, "/", "localhost", false, true)
-	ctx.SetCookie("refresh_token", tokens.RefreshToken, tokenInfo.RefreshTokenMaxAge*60, "/", "localhost", false, true)
-	ctx.SetCookie("logged_in", "true", tokenInfo.AccessTokenMaxAge*60, "/", "localhost", false, false)
+	ctx.SetCookie("access_token", tokens.AccessToken, ac.Config.AccessTokenMaxAge*60*60, "/", "localhost", false, true)
+	ctx.SetCookie("session_token", tokens.SessionToken, ac.Config.SessionTokenMaxAge*60*60, "/", "localhost", false, true)
+	ctx.SetCookie("refresh_token", tokens.RefreshToken, ac.Config.RefreshTokenMaxAge*60*60, "/", "localhost", false, true)
+	ctx.SetCookie("logged_in", "true", ac.Config.SessionTokenMaxAge*60*60, "/", "localhost", false, false)
 
 	userResponse := &dtos.UserResponse{
 		ID:        user.ID,
@@ -157,77 +157,94 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 		"data": gin.H{
 			"user":          userResponse,
 			"access_token":  tokens.AccessToken,
+			"session_token": tokens.SessionToken,
 			"refresh_token": tokens.RefreshToken,
+			"session_id":    tokens.SessionID,
 			"expires_in":    tokens.ExpiresIn,
-		},
-	})
-
-}
-
-func (ac *AuthHandler) RefreshAccessTokenHandler(ctx *gin.Context) {
-
-	message := "could not refresh access token"
-	userRepo := repositories.NewUserRepository(ac.DB)
-	cookie, err := ctx.Cookie("refresh_token")
-
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": message})
-		return
-	}
-
-	claims, err := utils.VerifyRefreshToken(cookie, ac.Config.RefreshTokenPublicKey)
-
-	var refreshTokenRecord utils.RefreshToken
-	result := ac.DB.Where("token = ? AND user_id = ? AND revoked = ? AND expires_at > ?",
-		cookie, claims.UserID.String(), false, time.Now().In(time.UTC),
-	).First(&refreshTokenRecord)
-
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": message, "error": "refresh token not found or invalid"})
-			return
-		}
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to query refresh token", "error": result.Error})
-		return
-	}
-
-	if refreshTokenRecord.Revoked {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": message, "error": "refresh token has been revoked"})
-		return
-	}
-
-	user, err := userRepo.FindByID(claims.UserID)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to fetch user", "error": err.Error()})
-		return
-	}
-
-	tokenInfo := utils.TokenConfig{
-		AccessTokenSecret:   ac.Config.AccessTokenPrivateKey,
-		AccessTokenDuration: time.Duration(ac.Config.AccessTokenMaxAge) * time.Minute,
-		AccessTokenMaxAge:   ac.Config.AccessTokenMaxAge,
-	}
-
-	token, err := utils.GenerateJWT(*user, "access", tokenInfo.AccessTokenDuration, tokenInfo.AccessTokenSecret)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to generate tokens"})
-		return
-	}
-
-	ctx.SetCookie("access_token", token, tokenInfo.AccessTokenMaxAge*60, "/", "localhost", false, true)
-	ctx.SetCookie("logged_in", "true", tokenInfo.AccessTokenMaxAge*60, "/", "localhost", false, false)
-	ctx.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"data": gin.H{
-			"access_token": token,
 		},
 	})
 }
 
 func (ac *AuthHandler) Logout(ctx *gin.Context) {
+	// Get session ID from cookie
+	auth := auth.NewAuthService(ac.DB, ac.Config)
+	sessionID, err := ctx.Cookie("session_id")
+	if err == nil && sessionID != "" {
+		// Revoke the session using the auth service
+		if err := auth.RevokeSession(*ac.CTX, sessionID); err != nil {
+			// Log the error but continue with cookie removal
+			ctx.Error(err)
+		}
+	}
+
+	// Clear all cookies regardless of whether session revocation succeeded
 	ctx.SetCookie("access_token", "", -1, "/", "localhost", false, true)
+	ctx.SetCookie("session_token", "", -1, "/", "localhost", false, true)
 	ctx.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
+	ctx.SetCookie("session_id", "", -1, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "", -1, "/", "localhost", false, false)
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+func (ac *AuthHandler) RefreshTokensHandler(ctx *gin.Context) {
+	userRepo := repositories.NewUserRepository(ac.DB)
+	authService := auth.NewAuthService(ac.DB, ac.Config)
+
+	// Get refresh token from cookie
+	refreshToken, err := ctx.Cookie("refresh_token")
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "refresh token not found"})
+		return
+	}
+
+	// Verify refresh token
+	claims, refreshTokenRecord, err := authService.VerifyRefreshToken(refreshToken, ac.Config.RefreshTokenPublicKey)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "invalid refresh token: " + err.Error()})
+		return
+	}
+
+	// Get user
+	user, err := userRepo.FindByID(claims.UserID)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to fetch user"})
+		return
+	}
+
+	// Revoke the old refresh token
+	if err := ac.DB.Model(&auth.RefreshToken{}).Where("id = ?", refreshTokenRecord.ID).Update("revoked", true).Error; err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to revoke old refresh token"})
+		return
+	}
+
+	// Get device info from headers
+	userAgent := ctx.GetHeader("User-Agent")
+	ipAddress := ctx.ClientIP()
+
+	// Generate new tokens
+	tokens, err := authService.GenerateTokens(*user, ipAddress, userAgent)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to generate new tokens: " + err.Error()})
+		return
+	}
+
+	// Set new cookies
+	ctx.SetCookie("access_token", tokens.AccessToken, ac.Config.AccessTokenMaxAge*60*60, "/", "localhost", false, true)
+	ctx.SetCookie("session_token", tokens.SessionToken, ac.Config.SessionTokenMaxAge*60*60, "/", "localhost", false, true)
+	ctx.SetCookie("refresh_token", tokens.RefreshToken, ac.Config.RefreshTokenMaxAge*60*60, "/", "localhost", false, true)
+	ctx.SetCookie("session_id", tokens.SessionID, ac.Config.SessionTokenMaxAge*60*60, "/", "localhost", false, true)
+	ctx.SetCookie("logged_in", "true", ac.Config.SessionTokenMaxAge*60*60, "/", "localhost", false, false)
+
+	// Return the new tokens
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"access_token":  tokens.AccessToken,
+			"session_token": tokens.SessionToken,
+			"refresh_token": tokens.RefreshToken,
+			"session_id":    tokens.SessionID,
+			"expires_in":    tokens.ExpiresIn,
+		},
+	})
 }

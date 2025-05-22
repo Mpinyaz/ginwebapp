@@ -19,6 +19,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network # Ensure postgres is also on the app-network
 
   pgadmin:
     image: dpage/pgadmin4
@@ -37,9 +39,27 @@ services:
     networks:
       - app-network
 
+  redis: # New Redis Service
+    image: redis:7-alpine # Using alpine for a smaller image size
+    container_name: gin-redis
+    env_file:
+      - .env # If you have Redis-specific environment variables like REDIS_PASSWORD
+    ports:
+      - "${REDIS_PORT}:6379" # Map host port to container port 6379
+    volumes:
+      - redis_data:/data # Persistent storage for Redis data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"] # Simple health check for Redis
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app-network
+
 volumes:
   postgres_data:
   pgadmin_data:
+  redis_data: # New volume for Redis data
 
 networks:
   app-network:

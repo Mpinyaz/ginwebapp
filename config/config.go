@@ -1,8 +1,6 @@
 package config
 
 import (
-	"context"
-	"errors"
 	"time"
 
 	"github.com/spf13/viper"
@@ -11,10 +9,14 @@ import (
 
 var DB *gorm.DB
 
-type AppConfig struct {
-	Port     int    `mapstructure:"PORT"`
-	DBUrl    string `mapstructure:"DB_URL"`
-	Database struct {
+type AppCfg struct {
+	Port           int    `mapstructure:"PORT"`
+	DBUrl          string `mapstructure:"DB_URL"`
+	REDIS_DB       int    `mapstructure:"REDIS_DB"`
+	REDIS_ADDR     string `mapstructure:"REDIS_ADDR"`
+	REDIS_PORT     string `mapstructure:"REDIS_PORT"`
+	REDIS_PASSWORD string `mapstructure:"REDIS_PASSWORD"`
+	Database       struct {
 		Host     string `mapstructure:"PSQL_HOST"`
 		DBPort   int    `mapstructure:"PSQL_PORT"`
 		User     string `mapstructure:"PSQL_USER"`
@@ -24,19 +26,18 @@ type AppConfig struct {
 	}
 	AccessTokenPrivateKey  string        `mapstructure:"ACCESS_TOKEN_PRIVATE_KEY"`
 	AccessTokenPublicKey   string        `mapstructure:"ACCESS_TOKEN_PUBLIC_KEY"`
+	SessionTokenPublicKey  string        `mapstructure:"SESSION_TOKEN_PUBLIC_KEY"`
+	SessionTokenPrivateKey string        `mapstructure:"SESSION_TOKEN_PRIVATE_KEY"`
 	RefreshTokenPrivateKey string        `mapstructure:"REFRESH_TOKEN_PRIVATE_KEY"`
 	RefreshTokenPublicKey  string        `mapstructure:"REFRESH_TOKEN_PUBLIC_KEY"`
 	AccessTokenExpiresIn   time.Duration `mapstructure:"ACCESS_TOKEN_EXPIRED_IN"`
 	RefreshTokenExpiresIn  time.Duration `mapstructure:"REFRESH_TOKEN_EXPIRED_IN"`
 	AccessTokenMaxAge      int           `mapstructure:"ACCESS_TOKEN_MAXAGE"`
 	RefreshTokenMaxAge     int           `mapstructure:"REFRESH_TOKEN_MAXAGE"`
+	SessionTokenMaxAge     int           `mapstructure:"SESSION_TOKEN_MAXAGE"`
 }
 
-type ctxKey string
-
-const configKey ctxKey = "appConfig"
-
-func LoadConfig(path string) (config *AppConfig, err error) {
+func LoadConfig(path string) (config *AppCfg, err error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigType("env")
 	viper.SetConfigName(".env")

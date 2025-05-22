@@ -11,7 +11,7 @@ import (
 
 // SetupDatabase connects to the database, performs automigration, and returns the DB connection.
 
-func initDB(config config.AppConfig) (*gorm.DB, error) {
+func initPostgresDB(config config.AppConfig) (*gorm.DB, error) {
 
 	dsn := config.DBUrl
 	if dsn == "" {
