@@ -2,9 +2,15 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/Mpinyaz/GinWebApp/config"
+	"github.com/Mpinyaz/GinWebApp/db"
+	"github.com/Mpinyaz/GinWebApp/internal/cache"
+	"github.com/Mpinyaz/GinWebApp/internal/routes"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -14,5 +20,29 @@ func main() {
 	}
 
 	ctx := context.Background()
-	ctx = config.WithConfig(ctx, cfg)
+
+	redisClient, err := cache.ConnectRedis(cfg)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+
+	dbConn, err := db.ConnectPGDB(cfg)
+	if err != nil {
+		log.Fatalf("Error connecting to Postgres database: %v", err)
+	}
+
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowCredentials = true
+
+	router := gin.Default()
+	router.Use(cors.New(corsConfig))
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+
+	routes.AuthRoutes(router, dbConn, redisClient, cfg, &ctx)
+
+	log.Printf("Server starting on port %d", cfg.Port)
+	if err := router.Run(fmt.Sprintf(":%d", cfg.Port)); err != nil {
+		log.Fatalf("failed to start server: %v", err)
+	}
 }

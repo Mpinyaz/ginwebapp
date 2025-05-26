@@ -1,25 +1,26 @@
 package routes
 
 import (
+	"context"
+
+	"github.com/Mpinyaz/GinWebApp/config"
 	"github.com/Mpinyaz/GinWebApp/internal/handlers"
-	"github.com/Mpinyaz/GinWebApp/internal/middleware"
+	middleware "github.com/Mpinyaz/GinWebApp/internal/middleware"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
+	"gorm.io/gorm"
 )
 
-type AuthRouteHandler struct {
-	authHandler    handlers.AuthHandler
-	authMiddleware middleware.AuthMiddleware
-}
+func AuthRoutes(router *gin.Engine, db *gorm.DB, redis *redis.Client, cfg *config.AppCfg, ctx *context.Context) {
+	authHandler := handlers.NewAuthHandler(db, redis, cfg, ctx)
+	authMiddleware := middleware.NewAuthMiddleware(db, cfg, ctx)
 
-func NewAuthRouteHandler(authHandler handlers.AuthHandler, authMiddleware middleware.AuthMiddleware) AuthRouteHandler {
-	return AuthRouteHandler{authHandler: authHandler, authMiddleware: authMiddleware}
-}
+	publicAuth := router.Group("/api/auth")
+	publicAuth.POST("/register", authHandler.RegisterHandler)
+	publicAuth.POST("/login", authHandler.LoginHandler)
 
-func (ah *AuthRouteHandler) AuthRoute(rg *gin.RouterGroup) {
-	router := rg.Group("/auth")
-
-	router.POST("/register", ah.authHandler.RegisterHandler)
-	router.POST("/login", ah.authHandler.LoginHandler)
-	router.GET("/refresh", ah.authHandler.RefreshAccessTokenHandler)
-	router.GET("/logout", ah.authMiddleware.DeserializeUser(), ah.authHandler.Logout)
+	protectedAuth := router.Group("/api/auth")
+	protectedAuth.Use(authMiddleware.VerifyAccessTokenMiddleware(cfg.AccessTokenPublicKey))
+	protectedAuth.POST("/logout", authHandler.Logout)
+	protectedAuth.POST("/refresh", authHandler.RefreshTokensHandler)
 }
