@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.LoadConfig(".")
+	cfg, err := config.LoadConfig("../.")
 	if err != nil {
 		log.Fatalf("failed to load configuration: %v", err)
 	}
@@ -31,14 +31,13 @@ func main() {
 		log.Fatalf("Error connecting to Postgres database: %v", err)
 	}
 
+	router := gin.Default()
 	corsConfig := cors.DefaultConfig()
+	dm := fmt.Sprintf("http://localhost:%d", cfg.Port)
+	corsConfig.AllowOrigins = []string{dm, cfg.ClientOrigin}
 	corsConfig.AllowCredentials = true
 
-	router := gin.Default()
 	router.Use(cors.New(corsConfig))
-	router.Use(gin.Logger())
-	router.Use(gin.Recovery())
-
 	routes.AuthRoutes(router, dbConn, redisClient, cfg, &ctx)
 
 	log.Printf("Server starting on port %d", cfg.Port)

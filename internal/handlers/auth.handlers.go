@@ -92,7 +92,7 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 
 func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 	userRepo := repositories.NewUserRepository(ac.DB)
-	authService := auth.NewAuthService(ac.DB, ac.Config)
+	authService := auth.NewAuthService(ac.DB, ac.Config, ac.Redis)
 	var payload *dtos.LoginRequest
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -108,14 +108,14 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 	if isValidEmail {
 		user, err = userRepo.FindByEmail(payload.LoginIndentifier)
 	} else {
-		user, err = userRepo.FindByUserame(payload.LoginIndentifier) // Corrected function name
+		user, err = userRepo.FindByUserame(payload.LoginIndentifier)
 	}
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": "Invalid email or Password"})
 		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Database error: " + err.Error()}) // handle other db errors
+			ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Database error: " + err.Error()})
 		}
 		return
 	}
@@ -167,7 +167,7 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 
 func (ac *AuthHandler) Logout(ctx *gin.Context) {
 	// Get session ID from cookie
-	auth := auth.NewAuthService(ac.DB, ac.Config)
+	auth := auth.NewAuthService(ac.DB, ac.Config, ac.Redis)
 	sessionID, err := ctx.Cookie("session_id")
 	if err == nil && sessionID != "" {
 		// Revoke the session using the auth service
@@ -189,7 +189,7 @@ func (ac *AuthHandler) Logout(ctx *gin.Context) {
 
 func (ac *AuthHandler) RefreshTokensHandler(ctx *gin.Context) {
 	userRepo := repositories.NewUserRepository(ac.DB)
-	authService := auth.NewAuthService(ac.DB, ac.Config)
+	authService := auth.NewAuthService(ac.DB, ac.Config, ac.Redis)
 
 	// Get refresh token from cookie
 	refreshToken, err := ctx.Cookie("refresh_token")

@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	config "github.com/Mpinyaz/GinWebApp/internal"
 	models "github.com/Mpinyaz/GinWebApp/models/users"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
 	// "os"
 )
 

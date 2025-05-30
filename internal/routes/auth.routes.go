@@ -13,7 +13,7 @@ import (
 
 func AuthRoutes(router *gin.Engine, db *gorm.DB, redis *redis.Client, cfg *config.AppCfg, ctx *context.Context) {
 	authHandler := handlers.NewAuthHandler(db, redis, cfg, ctx)
-	authMiddleware := middleware.NewAuthMiddleware(db, cfg, ctx)
+	authMiddleware := middleware.NewAuthMiddleware(db, cfg, ctx, redis)
 
 	publicAuth := router.Group("/api/auth")
 	publicAuth.POST("/register", authHandler.RegisterHandler)

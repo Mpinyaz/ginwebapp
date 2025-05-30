@@ -5,6 +5,7 @@ import (
 	"time" // Import time for connection settings
 
 	config "github.com/Mpinyaz/GinWebApp/config"
+	"github.com/Mpinyaz/GinWebApp/internal/auth"
 	models "github.com/Mpinyaz/GinWebApp/internal/models/users"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -39,8 +40,11 @@ func ConnectPGDB(cfg *config.AppCfg) (*gorm.DB, error) {
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(5 * time.Minute)
+	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`).Error; err != nil {
+		return nil, fmt.Errorf("failed to create uuid-ossp extension: %w", err)
+	}
 
-	if err = db.AutoMigrate(&models.User{}); err != nil {
+	if err = db.AutoMigrate(&models.User{}, &auth.RefreshToken{}, &auth.BlacklistedToken{}); err != nil {
 		sqlDB.Close()
 		return nil, fmt.Errorf("failed to automigrate schema: %w", err)
 	}

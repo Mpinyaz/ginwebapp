@@ -20,9 +20,8 @@ type Store struct {
 
 func ConnectDB() {
 	var err error
-	config, err := config.LoadConfig(".")
+	config, err := config.LoadConfig("../.")
 	db, err := gorm.Open(postgres.Open(config.DBUrl), &gorm.Config{})
-
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}

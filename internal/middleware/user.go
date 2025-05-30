@@ -8,6 +8,7 @@ import (
 	"github.com/Mpinyaz/GinWebApp/config"
 	"github.com/Mpinyaz/GinWebApp/internal/auth"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
 )
 
@@ -16,8 +17,8 @@ type AuthMiddleware struct {
 	CTX         *context.Context
 }
 
-func NewAuthMiddleware(DB *gorm.DB, Config *config.AppCfg, CTX *context.Context) AuthMiddleware {
-	return AuthMiddleware{AuthService: auth.NewAuthService(DB, Config), CTX: CTX}
+func NewAuthMiddleware(DB *gorm.DB, Config *config.AppCfg, CTX *context.Context, redis *redis.Client) AuthMiddleware {
+	return AuthMiddleware{AuthService: auth.NewAuthService(DB, Config, redis), CTX: CTX}
 }
 
 func (am *AuthMiddleware) VerifyAccessTokenMiddleware(tokenPublicKey string) gin.HandlerFunc {

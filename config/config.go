@@ -11,6 +11,7 @@ var DB *gorm.DB
 
 type AppCfg struct {
 	Port           int    `mapstructure:"PORT"`
+	ClientOrigin   string `mapstructure:"CLIENT_ORIGIN"`
 	DBUrl          string `mapstructure:"DB_URL"`
 	REDIS_DB       int    `mapstructure:"REDIS_DB"`
 	REDIS_ADDR     string `mapstructure:"REDIS_ADDR"`

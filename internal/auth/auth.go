@@ -21,12 +21,7 @@ type AuthService struct {
 	TokenCfg  *TokenConfig
 }
 
-func NewAuthService(db *gorm.DB, cfg *config.AppCfg) *AuthService {
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("redis:%s", cfg.REDIS_ADDR),
-		Password: cfg.REDIS_PASSWORD,
-		DB:       cfg.REDIS_DB,
-	})
+func NewAuthService(db *gorm.DB, cfg *config.AppCfg, redis *redis.Client) *AuthService {
 	tokenInfo := TokenConfig{
 		AccessTokenSecret:    cfg.AccessTokenPrivateKey,
 		AccessTokenDuration:  time.Duration(cfg.AccessTokenMaxAge) * time.Hour,
@@ -41,7 +36,7 @@ func NewAuthService(db *gorm.DB, cfg *config.AppCfg) *AuthService {
 
 	return &AuthService{
 		DB:        db,
-		RedisConn: redisClient,
+		RedisConn: redis,
 		TokenCfg:  &tokenInfo,
 	}
 }

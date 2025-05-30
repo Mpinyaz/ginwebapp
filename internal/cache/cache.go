@@ -10,10 +10,11 @@ import (
 
 func ConnectRedis(cfg *config.AppCfg) (*redis.Client, error) {
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("redis:%s", cfg.REDIS_ADDR),
+		Addr:     "localhost:5488",
 		Password: cfg.REDIS_PASSWORD,
 		DB:       cfg.REDIS_DB,
 	})
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -24,4 +25,9 @@ func ConnectRedis(cfg *config.AppCfg) (*redis.Client, error) {
 
 	fmt.Println("Successfully connected to Redis!")
 	return redisClient, nil
+}
+
+// Optional: Add a helper function to close the connection
+func CloseRedis(client *redis.Client) error {
+	return client.Close()
 }
