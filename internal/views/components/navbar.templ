@@ -1,0 +1,17 @@
+package components
+
+templ NavBar(isLoggedIn bool) {
+	<nav class="bg-gray-600 px-4 py-2 mx-auto min-w-full flex items-center justify-between">
+		<div class="">
+			<p class="font-bold text-red-600 text-2xl">GinWebApp</p>
+		</div>
+		if isLoggedIn {
+			<button class="bg-blue-500 text-white px-4 py-2 rounded">Logout</button>
+		} else {
+			<div>
+				<a href="/login" class="bg-green-400 text-white rounded px-4 py-2 ">Login</a>
+				<a href="/register" class="bg-green-400 text-white rounded px-4 py-2 ">Register</a>
+			</div>
+		}
+	</nav>
+}

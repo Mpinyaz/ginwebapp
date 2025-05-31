@@ -2,20 +2,30 @@
   "name": "ginwebapp",
   "version": "1.0.0",
   "description": "Go Web App",
+  "keywords": [],
+  "homepage": "https://github.com/Mpinyaz/ginwebapp#readme",
+  "bugs": {
+    "url": "https://github.com/Mpinyaz/ginwebapp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mpinyaz/ginwebapp.git"
+  },
+  "license": "ISC",
+  "author": "Elton Mpinyuri",
+  "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-css": "tailwindcss -i ./static/css/src/input.css -o ./static/css/output/style.css"
   },
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.3",
-    "postcss-cli": "^11.0.1",
-    "tailwindcss": "^4.1.4"
-  },
-  "keywords": [],
   "dependencies": {
     "@tailwindcss/cli": "^4.1.4"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.4",
+    "postcss-cli": "^11.0.1",
+    "tailwindcss": "^4.1.8"
   }
 }

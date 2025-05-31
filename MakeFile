@@ -1,37 +1,96 @@
-.PHONY: build run clean tailwind watch-tailwind dev
+.PHONY: build run clean tailwind watch-tailwind dev air-dev install-deps tidy test
 
 # Go build variables
-BINARY_NAME=gogin
-GO_FILES=$(wildcard *.go)
+BINARY_NAME=ginapp
+GO_FILES=$(shell find . -name "*.go" -not -path "./vendor/*")
+AIR_BINARY=./bin/$(BINARY_NAME)
 
 # Default target
-all: tailwind build
+all: install-deps tailwind build
 
-# Build the Go application
+# Install development dependencies
+install-deps:
+	@echo "Installing Air for hot reloading..."
+	@go install github.com/cosmtrek/air@latest
+	@echo "Checking Tailwind CLI..."
+	@npx @tailwindcss/cli --help > /dev/null 2>&1 || npm install -D @tailwindcss/cli
+
+# Build the Go application (matches Air config)
 build:
-	@go build -o bin/$(BINARY_NAME) $(GO_FILES)
+	@echo "Building $(BINARY_NAME)..."
+	@mkdir -p bin
+	@go build -o $(AIR_BINARY) cmd/main.go
 
-# Run the application
+# Run the application directly
 run: build
-	./$(BINARY_NAME)
+	$(AIR_BINARY)
 
 # Clean build artifacts
 clean:
-	rm -f $(BINARY_NAME)
-	rm -f ./static/output/style.css
+	@echo "Cleaning build artifacts..."
+	@rm -rf bin/
+	@rm -rf tmp/
+	@rm -f ./static/css/output/style.css
+	@rm -f build-errors.log
 
+
+htmx_generate:
+ pwd && templ generate
+# Go mod tidy
 tidy:
- @go mod tidy
+	@go mod tidy
+
+# Test the application
+test:
+	@go test ./... -v
 
 # Build Tailwind CSS
 tailwind:
-	npx @tailwindcss/cli -i ./static/css/src/input.css -o ./static/css/output/style.css
+	@echo "Building Tailwind CSS..."
+	@mkdir -p ./static/css/output
+	@npx tailwindcss -i ./static/css/src/input.css -o ./static/css/output/style.css --minify
 
 # Watch Tailwind CSS files for changes during development
 watch-tailwind:
-	npx @tailwindcss/cli -i ./static/src/css/input.css -o ./static/css/output/style.css --watch
+	@echo "Watching Tailwind CSS files..."
+	@npx @tailwindcss/cli -i ./static/css/src/input.css -o ./static/css/output/style.css --watch
 
-# Development mode - watch Tailwind CSS files and run the application
-dev:
-	make tailwind
-	go run $(GO_FILES)
+# Development mode with Air (recommended)
+air-dev: install-deps tailwind
+	@echo "Starting development with Air hot reloading..."
+	@air
+# Add these targets to your existing Makefile
+templ-generate:
+	@templ generate
+
+dev-full: install-deps templ-generate tailwind
+	@air
+
+watch-templ:
+	@templ generate --watch
+
+# Alternative development mode without Air
+dev: tailwind
+	@echo "Starting development mode..."
+	@go run cmd/main.go
+
+# Production build
+prod-build: tailwind
+	@echo "Building for production..."
+	@mkdir -p bin
+	@CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o $(AIR_BINARY) cmd/main.go
+
+# Help target
+help:
+	@echo "Available targets:"
+	@echo "  all          - Install deps, build Tailwind, and build Go app"
+	@echo "  build        - Build the Go application"
+	@echo "  run          - Build and run the application"
+	@echo "  air-dev      - Start development with Air hot reloading (recommended)"
+	@echo "  dev          - Start development without Air"
+	@echo "  tailwind     - Build Tailwind CSS"
+	@echo "  watch-tailwind - Watch Tailwind CSS files"
+	@echo "  test         - Run tests"
+	@echo "  clean        - Clean build artifacts"
+	@echo "  tidy         - Run go mod tidy"
+	@echo "  prod-build   - Build for production"

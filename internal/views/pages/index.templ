@@ -1,0 +1,37 @@
+package pages
+
+import "github.com/Mpinyaz/GinWebApp/internal/views/layouts"
+import "github.com/Mpinyaz/GinWebApp/internal/views/components"
+
+templ Index(isLoggedIn bool) {
+	@layouts.BaseLayout() {
+		@components.NavBar(isLoggedIn)
+		<div class="container mx-auto px-4 py-8 bg-blue-500">
+			<h1 class="text-4xl font-bold text-center text-blue-600 mb-8">
+				Welcome to Go + Gin + Templ
+			</h1>
+			<div class="max-w-2xl mx-auto">
+				<div class="bg-orange-100 rounded-lg shadow-md p-6">
+					<h2 class="text-2xl font-semibold mb-4">Getting Started</h2>
+					<p class="text-gray-700 mb-4">
+						This is your index page rendered with templ and served by Gin.
+					</p>
+					<ul class="list-disc list-inside text-gray-600 space-y-2">
+						<li>Fast rendering with templ</li>
+						<li>Type-safe templates</li>
+						<li>Styled with Tailwind CSS</li>
+						<li>Served by Gin framework</li>
+					</ul>
+					<div class="mt-6">
+						<a
+							href="/about"
+							class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors"
+						>
+							Learn More
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}
