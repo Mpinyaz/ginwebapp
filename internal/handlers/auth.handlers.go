@@ -14,6 +14,7 @@ import (
 	models "github.com/Mpinyaz/GinWebApp/internal/models/users"
 	"github.com/Mpinyaz/GinWebApp/internal/repositories"
 	utils "github.com/Mpinyaz/GinWebApp/internal/utils"
+	"github.com/Mpinyaz/GinWebApp/internal/views/components"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
@@ -31,35 +32,59 @@ func NewAuthHandler(DB *gorm.DB, Redis *redis.Client, Config *config.AppCfg, CTX
 }
 
 func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
-	var payload *dtos.RegisterRequest
+	var req dtos.RegisterRequest
+	formData := dtos.NewFormData()
 
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+	if err := ctx.ShouldBind(&req); err != nil {
+		formData.Errors["form"] = "Please fill in all required fields"
+		ctx.Header("Content-Type", "text/html; charset=utf-8")
+		ctx.Status(http.StatusUnprocessableEntity) // Set status before rendering
+		components.RegisterForm(formData).Render(ctx.Request.Context(), ctx.Writer)
 		return
 	}
 
+	// Always populate form values for error cases
+	formData.Values["email"] = req.Email
+	formData.Values["username"] = req.Username
+
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	username := strings.ToLower(strings.TrimSpace(req.Username))
+	password := req.Password
+
+	// Check for existing email
 	var existingUser models.User
-
-	if result := ac.DB.Where("email = ?", payload.Email).First(&existingUser); result.RowsAffected > 0 {
-		ctx.JSON(http.StatusConflict, gin.H{"status": "error", "message": "Email already registered"})
+	if result := ac.DB.Where("email = ?", email).First(&existingUser); result.RowsAffected > 0 {
+		formData.Errors["email"] = "Email address is already registered"
+		ctx.Header("Content-Type", "text/html; charset=utf-8")
+		ctx.Status(http.StatusUnprocessableEntity) // Use 422 for validation errors
+		components.RegisterForm(formData).Render(ctx.Request.Context(), ctx.Writer)
 		return
 	}
 
-	if result := ac.DB.Where("username = ?", payload.Username).First(&existingUser); result.RowsAffected > 0 {
-		ctx.JSON(http.StatusConflict, gin.H{"status": "error", "message": "Username already taken"})
+	// Check for existing username
+	if result := ac.DB.Where("username = ?", username).First(&existingUser); result.RowsAffected > 0 {
+		formData.Errors["username"] = "Username is already taken" // Fixed field name (was "Username")
+		ctx.Header("Content-Type", "text/html; charset=utf-8")
+		ctx.Status(http.StatusUnprocessableEntity) // Use 422 for validation errors
+		components.RegisterForm(formData).Render(ctx.Request.Context(), ctx.Writer)
 		return
 	}
 
-	hashedPassword, err := utils.HashPassword(payload.Password)
+	// Hash password
+	hashedPassword, err := utils.HashPassword(password)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to hash password"})
+		formData.Errors["password"] = "Unable to process registration at this moment"
+		ctx.Header("Content-Type", "text/html; charset=utf-8")
+		ctx.Status(http.StatusInternalServerError)
+		components.RegisterForm(formData).Render(ctx.Request.Context(), ctx.Writer)
 		return
 	}
 
+	// Create user
 	now := time.Now().In(time.UTC)
 	user := models.User{
-		Username:  strings.ToLower(payload.Username),
-		Email:     strings.ToLower(payload.Email),
+		Username:  username,
+		Email:     email,
 		Password:  hashedPassword,
 		Role:      models.RoleUser,
 		Verified:  false,
@@ -68,26 +93,28 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 	}
 
 	result := ac.DB.Create(&user)
-
-	if result.Error != nil && strings.Contains(result.Error.Error(), "duplicate key value violates unique") {
-		ctx.JSON(http.StatusConflict, gin.H{"status": "fail", "message": "User with that email already exists"})
-		return
-	} else if result.Error != nil {
-		ctx.JSON(http.StatusBadGateway, gin.H{"status": "error", "message": "Something bad happened"})
+	if result.Error != nil {
+		if strings.Contains(result.Error.Error(), "duplicate key value violates unique") {
+			// Handle race condition where user was created between our checks
+			if strings.Contains(result.Error.Error(), "email") {
+				formData.Errors["email"] = "Email address is already registered"
+			} else if strings.Contains(result.Error.Error(), "username") {
+				formData.Errors["username"] = "Username is already taken"
+			} else {
+				formData.Errors["form"] = "Account with this information already exists"
+			}
+			ctx.Status(http.StatusUnprocessableEntity)
+		} else {
+			formData.Errors["form"] = "Unable to create account at this time"
+			ctx.Status(http.StatusInternalServerError)
+		}
+		ctx.Header("Content-Type", "text/html; charset=utf-8")
+		components.RegisterForm(formData).Render(ctx.Request.Context(), ctx.Writer)
 		return
 	}
 
-	userResponse := &dtos.UserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Role:      user.Role.String(),
-		Verified:  user.Verified,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-	}
-
-	ctx.JSON(http.StatusCreated, gin.H{"status": "success", "data": gin.H{"user": userResponse}})
+	// Success - redirect to login
+	ctx.Redirect(http.StatusSeeOther, "/login")
 }
 
 func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {

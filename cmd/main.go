@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"embed"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,8 +15,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
-
-var staticFiles embed.FS
 
 func main() {
 	cfg, err := config.LoadConfig(".")
@@ -54,6 +51,14 @@ func main() {
 		utils.Render(c, http.StatusOK, pages.Index(false))
 	})
 
+	router.GET("/register", func(c *gin.Context) {
+		cookie, _ := c.Cookie("session_token")
+		if cookie != "" {
+			c.Redirect(http.StatusFound, "/")
+		}
+
+		utils.Render(c, http.StatusOK, pages.Register())
+	})
 	routes.AuthRoutes(router, dbConn, redisClient, cfg, &ctx)
 
 	log.Printf("Server starting on port %d", cfg.Port)

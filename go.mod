@@ -3,10 +3,8 @@ module github.com/Mpinyaz/GinWebApp
 go 1.23.8
 
 require (
-	github.com/99designs/gqlgen v0.17.72
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/vektah/gqlparser/v2 v2.5.25
 	gorm.io/gorm v1.25.12
 )
 

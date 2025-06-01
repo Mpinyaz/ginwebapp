@@ -6,16 +6,23 @@ import (
 	"github.com/google/uuid"
 )
 
-type LoginRequest struct {
-	LoginIndentifier string `json:"email" binding:"required"`
-	Password         string `json:"password" binding:"required"`
+type ValidationErrors struct {
+	Field   string
+	Message string
 }
-
+type FormData struct {
+	Values map[string]string
+	Errors map[string]string
+}
+type LoginRequest struct {
+	LoginIndentifier string `form:"email" binding:"required"`
+	Password         string `form:"password" binding:"required"`
+}
 type RegisterRequest struct {
-	Username        string `json:"username" binding:"required"`
-	Email           string `json:"email" binding:"required"`
-	Password        string `json:"password" binding:"required,min=8"`
-	PasswordConfirm string `json:"passwordConfirm" binding:"required"`
+	Username        string `form:"username" binding:"required"`
+	Email           string `form:"email" binding:"required"`
+	Password        string `form:"password" binding:"required,min=8"`
+	PasswordConfirm string `form:"passwordconfirm" binding:"required"`
 }
 
 type UserResponse struct {
@@ -26,4 +33,11 @@ type UserResponse struct {
 	Verified  bool      `json:"verified,omitempty"`
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+}
+
+func NewFormData() FormData {
+	return FormData{
+		Values: make(map[string]string),
+		Errors: make(map[string]string),
+	}
 }
