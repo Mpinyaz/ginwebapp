@@ -2,8 +2,6 @@
 
 A modular and scalable web application built with **Go**, using the [Gin](https://github.com/gin-gonic/gin) web framework and [Templ](https://templ.guide) for HTML templating. The architecture emphasizes separation of concerns, maintainability, and clean organization of application logic.
 
----
-
 ## 🔍 Features
 
 - **User Authentication**
@@ -26,9 +24,7 @@ A modular and scalable web application built with **Go**, using the [Gin](https:
   - Custom middleware (auth/user context)
   - Caching utilities (Redis-ready)
 
----
-
-##
+## Project Structure
 
 ```
 

@@ -27,7 +27,7 @@ templ RegisterForm(formData dtos.FormData) {
 									clip-rule="evenodd"
 								></path>
 							</svg>
-							<div class="font-medium text-red-800">
+							<div class="font-medium text-red-800 px-5">
 								for _, error := range getFormErrors(formData, "form") {
 									<div class="mb-1 last:mb-0">{ error }</div>
 								}
@@ -57,11 +57,11 @@ templ RegisterForm(formData dtos.FormData) {
 							class={ inputStyle(formData, "username") }
 						/>
 						if hasFormError(formData, "username") {
-							<div class="mt-1 text-sm text-red-600">
+							<ul class="mt-1 text-sm text-red-600 list-disc px-5">
 								for _, error := range getFormErrors(formData, "username") {
-									<p class="mb-1 last:mb-0">{ error }</p>
+									<li class="mb-1 last:mb-0">{ error }</li>
 								}
-							</div>
+							</ul>
 						}
 					</div>
 					<div class="flex flex-col">
@@ -78,11 +78,11 @@ templ RegisterForm(formData dtos.FormData) {
 							class={ inputStyle(formData, "email") }
 						/>
 						if hasFormError(formData, "email") {
-							<div class="mt-1 text-sm text-red-600">
+							<ul class="mt-1 text-sm text-red-600 list-disc">
 								for _, error := range getFormErrors(formData, "email") {
-									<p class="mb-1 last:mb-0">{ error }</p>
+									<li class="mb-1 last:mb-0">{ error }</li>
 								}
-							</div>
+							</ul>
 						}
 					</div>
 					<div class="flex flex-col">
@@ -98,11 +98,11 @@ templ RegisterForm(formData dtos.FormData) {
 							class={ inputStyle(formData, "password") }
 						/>
 						if hasFormError(formData, "password") {
-							<div class="mt-1 text-sm text-red-600">
+							<ul class="mt-1 text-sm text-red-600 list-disc px-5">
 								for _, error := range getFormErrors(formData, "password") {
-									<p class="mb-1 last:mb-0">{ error }</p>
+									<li class="mb-1 last:mb-0">{ error }</li>
 								}
-							</div>
+							</ul>
 						}
 					</div>
 					<div class="flex flex-col">
@@ -121,11 +121,11 @@ templ RegisterForm(formData dtos.FormData) {
 							class={ inputStyle(formData, "passwordconfirm") }
 						/>
 						if hasFormError(formData, "passwordconfirm") {
-							<div class="mt-1 text-sm text-red-600">
+							<ul class="mt-1 text-sm text-red-600 list-disc px-5">
 								for _, error := range getFormErrors(formData, "passwordconfirm") {
-									<p class="mb-1 last:mb-0">{ error }</p>
+									<li class="mb-1 last:mb-0">{ error }</li>
 								}
-							</div>
+							</ul>
 						}
 					</div>
 					<button
@@ -136,16 +136,16 @@ templ RegisterForm(formData dtos.FormData) {
 					</button>
 				</form>
 				<div class="mt-8 text-center">
-					<p class="text-gray-600">
+					<ul class="text-gray-600">
 						Already have an account?
-						<a
+						<li
 							href="/login"
 							hx-boost="true"
 							class="font-semibold text-orange-600 hover:text-orange-700 transition-colors duration-200 ml-1 hover:underline"
 						>
 							Log In
-						</a>
-					</p>
+						</li>
+					</ul>
 				</div>
 			</div>
 		</div>
