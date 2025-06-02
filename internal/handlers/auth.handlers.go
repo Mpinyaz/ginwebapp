@@ -36,7 +36,7 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 	formData := dtos.NewFormData()
 
 	if err := ctx.ShouldBind(&req); err != nil {
-		formData.Errors["form"] = "Please fill in all required fields"
+		formData.Errors["form"] = []string{"Please fill in all required fields"}
 		utils.Render(ctx, http.StatusUnprocessableEntity, components.RegisterForm(formData))
 		return
 	}
@@ -44,33 +44,42 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 	formData.Values["email"] = req.Email
 	formData.Values["username"] = req.Username
 
+	dtos.ValidateRegInput(&req, &formData)
+
+	if len(formData.Errors["email"]) > 0 ||
+		len(formData.Errors["password"]) > 0 ||
+		len(formData.Errors["username"]) > 0 ||
+		len(formData.Errors["passwordconfirm"]) > 0 {
+		utils.Render(ctx, http.StatusUnprocessableEntity, components.RegisterForm(formData))
+		return
+	}
+
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	username := strings.ToLower(strings.TrimSpace(req.Username))
 	password := req.Password
 
 	var existingUser models.User
+
 	if result := ac.DB.Where("email = ?", email).First(&existingUser); result.RowsAffected > 0 {
-		formData.Errors["email"] = "Email address is already registered"
+		formData.Errors["email"] = []string{"Email address is already registered"}
 		utils.Render(ctx, http.StatusConflict, components.RegisterForm(formData))
-		ctx.Abort()
 		return
 	}
 
 	if result := ac.DB.Where("username = ?", username).First(&existingUser); result.RowsAffected > 0 {
-		formData.Errors["username"] = "Username is already taken"
+		formData.Errors["username"] = []string{"Username is already taken"}
 		utils.Render(ctx, http.StatusConflict, components.RegisterForm(formData))
 		return
 	}
 
 	hashedPassword, err := utils.HashPassword(password)
 	if err != nil {
-		formData.Errors["password"] = "Unable to process registration at this moment"
+		formData.Errors["password"] = []string{"Unable to process registration at this moment"}
 		utils.Render(ctx, http.StatusInternalServerError, components.RegisterForm(formData))
 		return
 	}
 
-	// Create user
-	now := time.Now().In(time.UTC)
+	now := time.Now().UTC()
 	user := models.User{
 		Username:  username,
 		Email:     email,
@@ -85,20 +94,20 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 	if result.Error != nil {
 		if strings.Contains(result.Error.Error(), "duplicate key value violates unique") {
 			if strings.Contains(result.Error.Error(), "email") {
-				formData.Errors["email"] = "Email address is already registered"
+				formData.Errors["email"] = []string{"Email address is already registered"}
 			} else if strings.Contains(result.Error.Error(), "username") {
-				formData.Errors["username"] = "Username is already taken"
+				formData.Errors["username"] = []string{"Username is already taken"}
 			} else {
-				formData.Errors["form"] = "Account with this information already exists"
+				formData.Errors["form"] = []string{"Account with this information already exists"}
 			}
-			ctx.Status(http.StatusUnprocessableEntity)
+			utils.Render(ctx, http.StatusUnprocessableEntity, components.RegisterForm(formData))
 		} else {
-			formData.Errors["form"] = "Unable to create account at this time"
-			ctx.Status(http.StatusInternalServerError)
+			formData.Errors["form"] = []string{"Unable to create account at this time"}
+			utils.Render(ctx, http.StatusInternalServerError, components.RegisterForm(formData))
 		}
-		components.RegisterForm(formData).Render(ctx.Request.Context(), ctx.Writer)
 		return
 	}
+
 	ctx.Redirect(http.StatusSeeOther, "/login")
 }
 
@@ -137,7 +146,6 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 		return
 	}
 
-	// Get device info from headers
 	userAgent := ctx.GetHeader("User-Agent")
 	ipAddress := ctx.ClientIP()
 
@@ -147,7 +155,6 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 		return
 	}
 
-	// Set cookies for the tokens
 	ctx.SetCookie("access_token", tokens.AccessToken, ac.Config.AccessTokenMaxAge*60*60, "/", "localhost", false, true)
 	ctx.SetCookie("session_token", tokens.SessionToken, ac.Config.SessionTokenMaxAge*60*60, "/", "localhost", false, true)
 	ctx.SetCookie("refresh_token", tokens.RefreshToken, ac.Config.RefreshTokenMaxAge*60*60, "/", "localhost", false, true)

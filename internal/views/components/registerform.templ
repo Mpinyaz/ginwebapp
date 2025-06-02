@@ -15,15 +15,23 @@ templ RegisterForm(formData dtos.FormData) {
 				</div>
 				if hasFormError(formData, "form") {
 					<div class="mb-6 p-4 bg-red-50 border border-red-900 rounded-lg">
-						<div class="flex-shrink-0">
-							<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+						<div class="flex items-start">
+							<svg
+								class="h-5 w-5 text-red-400 mr-2 mt-0.5 flex-shrink-0"
+								viewBox="0 0 20 20"
+								fill="currentColor"
+							>
 								<path
 									fill-rule="evenodd"
-									d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+									d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
 									clip-rule="evenodd"
 								></path>
 							</svg>
-							<h2 class="font-bold text-xl">{ getFormError(formData, "form") }</h2>
+							<div class="font-medium text-red-800">
+								for _, error := range getFormErrors(formData, "form") {
+									<div class="mb-1 last:mb-0">{ error }</div>
+								}
+							</div>
 						</div>
 					</div>
 				}
@@ -31,12 +39,11 @@ templ RegisterForm(formData dtos.FormData) {
 					hx-post="/api/auth/register"
 					hx-target="#registerform"
 					hx-target-error="#registerform"
-					hx-boost="true"
 					hx-swap="outerHTML"
 					hx-trigger="submit"
 					class="space-y-6"
 				>
-					<div class="flex flex-col space-x-2">
+					<div class="flex flex-col">
 						<label for="username" class="block text-sm font-semibold text-gray-700 mb-2">
 							Username
 						</label>
@@ -50,13 +57,14 @@ templ RegisterForm(formData dtos.FormData) {
 							class={ inputStyle(formData, "username") }
 						/>
 						if hasFormError(formData, "username") {
-							<p class="mt-1 text-sm text-red-600">
-								{ getFormError(formData,
-                                                "username") }
-							</p>
+							<div class="mt-1 text-sm text-red-600">
+								for _, error := range getFormErrors(formData, "username") {
+									<p class="mb-1 last:mb-0">{ error }</p>
+								}
+							</div>
 						}
 					</div>
-					<div class="flex flex-col space-x-2">
+					<div class="flex flex-col">
 						<label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
 							Email Address
 						</label>
@@ -70,12 +78,14 @@ templ RegisterForm(formData dtos.FormData) {
 							class={ inputStyle(formData, "email") }
 						/>
 						if hasFormError(formData, "email") {
-							<p class="mt-1 text-sm text-red-600">
-								{ getFormError(formData, "email") }
-							</p>
+							<div class="mt-1 text-sm text-red-600">
+								for _, error := range getFormErrors(formData, "email") {
+									<p class="mb-1 last:mb-0">{ error }</p>
+								}
+							</div>
 						}
 					</div>
-					<div class="flex flex-col space-x-2">
+					<div class="flex flex-col">
 						<label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
 							Password
 						</label>
@@ -88,13 +98,14 @@ templ RegisterForm(formData dtos.FormData) {
 							class={ inputStyle(formData, "password") }
 						/>
 						if hasFormError(formData, "password") {
-							<p class="mt-1 text-sm text-red-600">
-								{ getFormError(formData,
-                                                "password") }
-							</p>
+							<div class="mt-1 text-sm text-red-600">
+								for _, error := range getFormErrors(formData, "password") {
+									<p class="mb-1 last:mb-0">{ error }</p>
+								}
+							</div>
 						}
 					</div>
-					<div class="flex flex-col space-x-2">
+					<div class="flex flex-col">
 						<label
 							for="passwordconfirm"
 							class="block text-sm font-semibold text-gray-700 mb-2"
@@ -110,9 +121,11 @@ templ RegisterForm(formData dtos.FormData) {
 							class={ inputStyle(formData, "passwordconfirm") }
 						/>
 						if hasFormError(formData, "passwordconfirm") {
-							<p class="mt-1 text-sm text-red-600">
-								{ getFormError(formData, "passwordconfirm") }
-							</p>
+							<div class="mt-1 text-sm text-red-600">
+								for _, error := range getFormErrors(formData, "passwordconfirm") {
+									<p class="mb-1 last:mb-0">{ error }</p>
+								}
+							</div>
 						}
 					</div>
 					<button
@@ -125,14 +138,13 @@ templ RegisterForm(formData dtos.FormData) {
 				<div class="mt-8 text-center">
 					<p class="text-gray-600">
 						Already have an account?
-						<div hx-boost="true">
-							<a
-								href="/login"
-								class="font-semibold text-orange-600 hover:text-orange-700 transition-colors duration-200 ml-1 hover:underline"
-							>
-								Sign In
-							</a>
-						</div>
+						<a
+							href="/login"
+							hx-boost="true"
+							class="font-semibold text-orange-600 hover:text-orange-700 transition-colors duration-200 ml-1 hover:underline"
+						>
+							Log In
+						</a>
 					</p>
 				</div>
 			</div>
@@ -141,13 +153,20 @@ templ RegisterForm(formData dtos.FormData) {
 }
 
 func hasFormError(formData dtos.FormData, field string) bool {
-	_, exists := formData.Errors[field]
-	return exists
+	errors, exists := formData.Errors[field]
+	return exists && len(errors) > 0
+}
+
+func getFormErrors(formData dtos.FormData, field string) []string {
+	if errors, exists := formData.Errors[field]; exists && len(errors) > 0 {
+		return errors
+	}
+	return []string{}
 }
 
 func getFormError(formData dtos.FormData, field string) string {
-	if error, exists := formData.Errors[field]; exists {
-		return error
+	if errors, exists := formData.Errors[field]; exists && len(errors) > 0 {
+		return errors[0] // Return the first error message for single error display
 	}
 	return ""
 }

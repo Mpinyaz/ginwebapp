@@ -25,3 +25,8 @@ func ViewRegister(c *gin.Context) {
 
 	utils.Render(c, http.StatusOK, pages.Register())
 }
+
+func NotFound(c *gin.Context) {
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	utils.Render(c, http.StatusOK, pages.PageNotFound("Better Luck Next Time"))
+}

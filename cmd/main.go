@@ -8,6 +8,7 @@ import (
 	"github.com/Mpinyaz/GinWebApp/config"
 	"github.com/Mpinyaz/GinWebApp/db"
 	"github.com/Mpinyaz/GinWebApp/internal/cache"
+	"github.com/Mpinyaz/GinWebApp/internal/handlers"
 	"github.com/Mpinyaz/GinWebApp/internal/routes"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -42,6 +43,7 @@ func main() {
 
 	routes.ViewRoutes(router)
 	routes.AuthRoutes(router, dbConn, redisClient, cfg, &ctx)
+	router.NoRoute(handlers.NotFound)
 
 	log.Printf("Server starting on port %d", cfg.Port)
 	if err := router.Run(fmt.Sprintf(":%d", cfg.Port)); err != nil {
