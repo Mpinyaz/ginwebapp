@@ -29,9 +29,11 @@ templ RegisterForm(formData dtos.FormData) {
 				}
 				<form
 					hx-post="/api/auth/register"
-					hx-swap="outerHTML"
 					hx-target="#registerform"
-					hx-target-422="#registerform"
+					hx-target-error="#registerform"
+					hx-boost="true"
+					hx-swap="outerHTML"
+					hx-trigger="submit"
 					class="space-y-6"
 				>
 					<div class="flex flex-col space-x-2">
@@ -48,7 +50,10 @@ templ RegisterForm(formData dtos.FormData) {
 							class={ inputStyle(formData, "username") }
 						/>
 						if hasFormError(formData, "username") {
-							<p class="mt-1 text-sm text-red-600">{ getFormError(formData, "username") }</p>
+							<p class="mt-1 text-sm text-red-600">
+								{ getFormError(formData,
+                                                "username") }
+							</p>
 						}
 					</div>
 					<div class="flex flex-col space-x-2">
@@ -65,7 +70,9 @@ templ RegisterForm(formData dtos.FormData) {
 							class={ inputStyle(formData, "email") }
 						/>
 						if hasFormError(formData, "email") {
-							<p class="mt-1 text-sm text-red-600">{ getFormError(formData, "email") }</p>
+							<p class="mt-1 text-sm text-red-600">
+								{ getFormError(formData, "email") }
+							</p>
 						}
 					</div>
 					<div class="flex flex-col space-x-2">
@@ -81,7 +88,10 @@ templ RegisterForm(formData dtos.FormData) {
 							class={ inputStyle(formData, "password") }
 						/>
 						if hasFormError(formData, "password") {
-							<p class="mt-1 text-sm text-red-600">{ getFormError(formData, "password") }</p>
+							<p class="mt-1 text-sm text-red-600">
+								{ getFormError(formData,
+                                                "password") }
+							</p>
 						}
 					</div>
 					<div class="flex flex-col space-x-2">

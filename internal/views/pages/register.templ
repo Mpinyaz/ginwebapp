@@ -5,7 +5,7 @@ import "github.com/Mpinyaz/GinWebApp/internal/views/components"
 import "github.com/Mpinyaz/GinWebApp/internal/dtos"
 
 templ Register() {
-	@layouts.BaseLayout() {
+	@layouts.BaseLayout("Register") {
 		@components.RegisterForm(dtos.NewFormData())
 	}
 }

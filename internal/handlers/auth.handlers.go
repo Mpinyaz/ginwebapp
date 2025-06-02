@@ -37,13 +37,10 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 
 	if err := ctx.ShouldBind(&req); err != nil {
 		formData.Errors["form"] = "Please fill in all required fields"
-		ctx.Header("Content-Type", "text/html; charset=utf-8")
-		ctx.Status(http.StatusUnprocessableEntity) // Set status before rendering
-		components.RegisterForm(formData).Render(ctx.Request.Context(), ctx.Writer)
+		utils.Render(ctx, http.StatusUnprocessableEntity, components.RegisterForm(formData))
 		return
 	}
 
-	// Always populate form values for error cases
 	formData.Values["email"] = req.Email
 	formData.Values["username"] = req.Username
 
@@ -51,32 +48,24 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 	username := strings.ToLower(strings.TrimSpace(req.Username))
 	password := req.Password
 
-	// Check for existing email
 	var existingUser models.User
 	if result := ac.DB.Where("email = ?", email).First(&existingUser); result.RowsAffected > 0 {
 		formData.Errors["email"] = "Email address is already registered"
-		ctx.Header("Content-Type", "text/html; charset=utf-8")
-		ctx.Status(http.StatusUnprocessableEntity) // Use 422 for validation errors
-		components.RegisterForm(formData).Render(ctx.Request.Context(), ctx.Writer)
+		utils.Render(ctx, http.StatusConflict, components.RegisterForm(formData))
+		ctx.Abort()
 		return
 	}
 
-	// Check for existing username
 	if result := ac.DB.Where("username = ?", username).First(&existingUser); result.RowsAffected > 0 {
-		formData.Errors["username"] = "Username is already taken" // Fixed field name (was "Username")
-		ctx.Header("Content-Type", "text/html; charset=utf-8")
-		ctx.Status(http.StatusUnprocessableEntity) // Use 422 for validation errors
-		components.RegisterForm(formData).Render(ctx.Request.Context(), ctx.Writer)
+		formData.Errors["username"] = "Username is already taken"
+		utils.Render(ctx, http.StatusConflict, components.RegisterForm(formData))
 		return
 	}
 
-	// Hash password
 	hashedPassword, err := utils.HashPassword(password)
 	if err != nil {
 		formData.Errors["password"] = "Unable to process registration at this moment"
-		ctx.Header("Content-Type", "text/html; charset=utf-8")
-		ctx.Status(http.StatusInternalServerError)
-		components.RegisterForm(formData).Render(ctx.Request.Context(), ctx.Writer)
+		utils.Render(ctx, http.StatusInternalServerError, components.RegisterForm(formData))
 		return
 	}
 
@@ -95,7 +84,6 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 	result := ac.DB.Create(&user)
 	if result.Error != nil {
 		if strings.Contains(result.Error.Error(), "duplicate key value violates unique") {
-			// Handle race condition where user was created between our checks
 			if strings.Contains(result.Error.Error(), "email") {
 				formData.Errors["email"] = "Email address is already registered"
 			} else if strings.Contains(result.Error.Error(), "username") {
@@ -108,12 +96,9 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 			formData.Errors["form"] = "Unable to create account at this time"
 			ctx.Status(http.StatusInternalServerError)
 		}
-		ctx.Header("Content-Type", "text/html; charset=utf-8")
 		components.RegisterForm(formData).Render(ctx.Request.Context(), ctx.Writer)
 		return
 	}
-
-	// Success - redirect to login
 	ctx.Redirect(http.StatusSeeOther, "/login")
 }
 
