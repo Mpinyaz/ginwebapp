@@ -1,18 +1,17 @@
 package components
 
-import "github.com/Mpinyaz/GinWebApp/internal/dtos"
 import "github.com/Mpinyaz/GinWebApp/internal/views"
+import "github.com/Mpinyaz/GinWebApp/internal/dtos"
 
-templ RegisterForm(formData dtos.FormData) {
+templ LogInForm(formData dtos.FormData) {
 	<section
 		class="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-red-500 flex items-center justify-center px-4 py-8"
-		id="registerform"
+		id="loginform"
 	>
 		<div class="w-full max-w-md">
 			<div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20">
 				<div class="text-center mb-8">
-					<h1 class="text-3xl font-bold text-gray-800 mb-2">Create Account</h1>
-					<p class="text-gray-600">Join us today and get started</p>
+					<h1 class="text-3xl font-bold text-gray-800 mb-2">Log In</h1>
 				</div>
 				if views.HasFormError(formData, "form") {
 					<div class="mb-6 p-4 bg-red-50 border border-red-900 rounded-lg">
@@ -37,50 +36,31 @@ templ RegisterForm(formData dtos.FormData) {
 					</div>
 				}
 				<form
-					hx-post="/api/auth/register"
-					hx-target="#registerform"
-					hx-target-error="#registerform"
+					hx-post="/api/auth/login"
+					hx-target="#loginform"
+					hx-target-error="#loginform"
 					hx-swap="outerHTML"
 					hx-trigger="submit"
 					class="space-y-6"
 				>
 					<div class="flex flex-col">
 						<label for="username" class="block text-sm font-semibold text-gray-700 mb-2">
-							Username
+							<p class="text-gray-600 text-center text-2xl font-bold mb-3">
+								Your Back Yay!
+							</p>
 						</label>
 						<input
 							type="text"
-							name="username"
-							id="username"
-							placeholder="Choose a username"
-							value={ views.GetFormValue(formData, "username") }
+							name="identifier"
+							id="identifier"
+							placeholder="Please enter your email or username"
+							value={ views.GetFormValue(formData, "identifier") }
 							required
-							class={ views.InputStyle(formData, "username") }
+							class={ views.InputStyle(formData, "identifier") }
 						/>
-						if views.HasFormError(formData, "username") {
+						if views.HasFormError(formData, "identifier") {
 							<ul class="mt-1 text-sm text-red-600 list-disc px-5">
-								for _, error := range views.GetFormErrors(formData, "username") {
-									<li class="mb-1 last:mb-0">{ error }</li>
-								}
-							</ul>
-						}
-					</div>
-					<div class="flex flex-col">
-						<label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
-							Email Address
-						</label>
-						<input
-							type="email"
-							name="email"
-							id="email"
-							placeholder="your@email.com"
-							value={ views.GetFormValue(formData, "email") }
-							required
-							class={ views.InputStyle(formData, "email") }
-						/>
-						if views.HasFormError(formData, "email") {
-							<ul class="mt-1 text-sm text-red-600 list-disc">
-								for _, error := range views.GetFormErrors(formData, "email") {
+								for _, error := range views.GetFormErrors(formData, "identifier") {
 									<li class="mb-1 last:mb-0">{ error }</li>
 								}
 							</ul>
@@ -94,7 +74,7 @@ templ RegisterForm(formData dtos.FormData) {
 							type="password"
 							name="password"
 							id="password"
-							placeholder="Create a strong password"
+							placeholder="Enter Password"
 							required
 							class={ views.InputStyle(formData, "password") }
 						/>
@@ -106,45 +86,22 @@ templ RegisterForm(formData dtos.FormData) {
 							</ul>
 						}
 					</div>
-					<div class="flex flex-col">
-						<label
-							for="passwordconfirm"
-							class="block text-sm font-semibold text-gray-700 mb-2"
-						>
-							Confirm Password
-						</label>
-						<input
-							type="password"
-							name="passwordconfirm"
-							id="passwordconfirm"
-							placeholder="Confirm your password"
-							required
-							class={ views.InputStyle(formData, "passwordconfirm") }
-						/>
-						if views.HasFormError(formData, "passwordconfirm") {
-							<ul class="mt-1 text-sm text-red-600 list-disc px-5">
-								for _, error := range views.GetFormErrors(formData, "passwordconfirm") {
-									<li class="mb-1 last:mb-0">{ error }</li>
-								}
-							</ul>
-						}
-					</div>
 					<button
 						type="submit"
 						class="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] focus:ring-4 focus:ring-orange-500/30 focus:outline-none shadow-lg hover:shadow-xl"
 					>
-						Create Account
+						Log In
 					</button>
 				</form>
 				<div class="mt-8 text-center">
 					<div class="text-gray-600">
-						Already have an account?
+						Dont have an account?
 						<a
-							href="/login"
+							href="/register"
 							hx-boost="true"
 							class="font-semibold text-orange-600 hover:text-orange-700 transition-colors duration-200 ml-1 hover:underline"
 						>
-							Log In
+							Register Here!
 						</a>
 					</div>
 				</div>

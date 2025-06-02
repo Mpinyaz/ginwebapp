@@ -8,16 +8,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type ValidationErrors struct {
-	Field   string
-	Message string
-}
 type FormData struct {
 	Values map[string]string
 	Errors map[string][]string
 }
+
 type LoginRequest struct {
-	LoginIndentifier string `form:"email" binding:"required"`
+	LoginIndentifier string `form:"identifier" binding:"required"`
 	Password         string `form:"password" binding:"required"`
 }
 type RegisterRequest struct {

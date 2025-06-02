@@ -12,9 +12,9 @@ func ViewIndex(c *gin.Context) {
 	cookie, _ := c.Cookie("session_token")
 	if cookie != "" {
 		utils.Render(c, http.StatusOK, pages.Index(true))
+	} else {
+		utils.Render(c, http.StatusOK, pages.Index(false))
 	}
-
-	utils.Render(c, http.StatusOK, pages.Index(false))
 }
 
 func ViewRegister(c *gin.Context) {
@@ -24,6 +24,15 @@ func ViewRegister(c *gin.Context) {
 	}
 
 	utils.Render(c, http.StatusOK, pages.Register())
+}
+
+func ViewLogin(c *gin.Context) {
+	cookie, _ := c.Cookie("session_token")
+	if cookie != "" {
+		c.Redirect(http.StatusFound, "/")
+	}
+
+	utils.Render(c, http.StatusOK, pages.LogIn())
 }
 
 func NotFound(c *gin.Context) {

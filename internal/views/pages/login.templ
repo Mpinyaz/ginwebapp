@@ -1,0 +1,16 @@
+package pages
+
+import "github.com/Mpinyaz/GinWebApp/internal/views/layouts"
+import "github.com/Mpinyaz/GinWebApp/internal/views/components"
+import "github.com/Mpinyaz/GinWebApp/internal/dtos"
+
+templ LogIn() {
+	@layouts.BaseLayout("Login") {
+		<script>
+        document.addEventListener('DOMContentLoaded', function () {
+                checkForToastParams();
+        });
+</script>
+		@components.LogInForm(dtos.NewFormData())
+	}
+}

@@ -3,8 +3,9 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
-	"regexp"
+	"net/url"
 	"strings"
 	"time"
 
@@ -108,41 +109,48 @@ func (ac *AuthHandler) RegisterHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Redirect(http.StatusSeeOther, "/login")
+	msg := fmt.Sprintf("Hey %s, you have been successfully registered", username)
+	ctx.Header("HX-Redirect", "/login?success="+url.QueryEscape(msg))
+	ctx.Status(http.StatusOK)
 }
 
 func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 	userRepo := repositories.NewUserRepository(ac.DB)
 	authService := auth.NewAuthService(ac.DB, ac.Config, ac.Redis)
-	var payload *dtos.LoginRequest
+	var req dtos.LoginRequest
+	formData := dtos.NewFormData()
 
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+	if err := ctx.ShouldBind(&req); err != nil {
+		formData.Errors["form"] = []string{"Please fill in all required fields"}
+		utils.Render(ctx, http.StatusUnprocessableEntity, components.LogInForm(formData))
 		return
 	}
 
 	var user *models.User
 	var err error
-	emailRegex := `^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`
-	isValidEmail := regexp.MustCompile(emailRegex).MatchString(payload.LoginIndentifier)
 
-	if isValidEmail {
-		user, err = userRepo.FindByEmail(payload.LoginIndentifier)
+	if utils.IsValidEmail(req.LoginIndentifier) {
+		user, err = userRepo.FindByEmail(req.LoginIndentifier)
 	} else {
-		user, err = userRepo.FindByUserame(payload.LoginIndentifier)
+		user, err = userRepo.FindByUserame(req.LoginIndentifier)
 	}
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": "Invalid email or Password"})
+			formData.Errors["form"] = []string{"Invalid email or Password"}
+			utils.Render(ctx, http.StatusUnprocessableEntity, components.LogInForm(formData))
+
 		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Database error: " + err.Error()})
+			formData.Errors["form"] = []string{"Internal Error: " + err.Error()}
+			utils.Render(ctx, http.StatusInternalServerError, components.LogInForm(formData))
+
 		}
 		return
 	}
 
-	if err := utils.VerifyPassword(user.Password, payload.Password); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": "Invalid email or Password"})
+	if err := utils.VerifyPassword(user.Password, req.Password); err != nil {
+		formData.Errors["form"] = []string{"Invalid email or Password"}
+		utils.Render(ctx, http.StatusUnprocessableEntity, components.LogInForm(formData))
 		return
 	}
 
@@ -151,37 +159,19 @@ func (ac *AuthHandler) LoginHandler(ctx *gin.Context) {
 
 	tokens, err := authService.GenerateTokens(*user, ipAddress, userAgent)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to generate tokens: " + err.Error()})
+		formData.Errors["form"] = []string{"Internal Error: cannot login right now"}
+		utils.Render(ctx, http.StatusUnprocessableEntity, components.LogInForm(formData))
 		return
 	}
 
 	ctx.SetCookie("access_token", tokens.AccessToken, ac.Config.AccessTokenMaxAge*60*60, "/", "localhost", false, true)
 	ctx.SetCookie("session_token", tokens.SessionToken, ac.Config.SessionTokenMaxAge*60*60, "/", "localhost", false, true)
 	ctx.SetCookie("refresh_token", tokens.RefreshToken, ac.Config.RefreshTokenMaxAge*60*60, "/", "localhost", false, true)
+	ctx.SetCookie("session_id", tokens.SessionID, ac.Config.SessionTokenMaxAge*60*60, "/", "localhost", false, false)
 	ctx.SetCookie("logged_in", "true", ac.Config.SessionTokenMaxAge*60*60, "/", "localhost", false, false)
 
-	userResponse := &dtos.UserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Role:      user.Role.String(),
-		Verified:  user.Verified,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-	}
-
-	// Return the response
-	ctx.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"data": gin.H{
-			"user":          userResponse,
-			"access_token":  tokens.AccessToken,
-			"session_token": tokens.SessionToken,
-			"refresh_token": tokens.RefreshToken,
-			"session_id":    tokens.SessionID,
-			"expires_in":    tokens.ExpiresIn,
-		},
-	})
+	ctx.Header("HX-Redirect", "/")
+	ctx.Status(http.StatusOK)
 }
 
 func (ac *AuthHandler) Logout(ctx *gin.Context) {
@@ -203,7 +193,8 @@ func (ac *AuthHandler) Logout(ctx *gin.Context) {
 	ctx.SetCookie("session_id", "", -1, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "", -1, "/", "localhost", false, false)
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
+	ctx.Header("HX-Redirect", "/")
+	ctx.Status(http.StatusOK)
 }
 
 func (ac *AuthHandler) RefreshTokensHandler(ctx *gin.Context) {

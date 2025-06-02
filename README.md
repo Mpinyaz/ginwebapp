@@ -1,8 +1,8 @@
-# 🛠️ Go Web Application
+# Go Web Application
 
 A modular and scalable web application built with **Go**, using the [Gin](https://github.com/gin-gonic/gin) web framework and [Templ](https://templ.guide) for HTML templating. The architecture emphasizes separation of concerns, maintainability, and clean organization of application logic.
 
-## 🔍 Features
+## Features
 
 - **User Authentication**
   - Register, login, logout

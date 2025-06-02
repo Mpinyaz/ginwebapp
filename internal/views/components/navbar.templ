@@ -6,7 +6,7 @@ templ NavBar(isLoggedIn bool) {
 			<p class="font-bold text-red-600 text-2xl">GinWebApp</p>
 		</div>
 		if isLoggedIn {
-			<button class="bg-blue-500 text-white px-4 py-2 rounded">Logout</button>
+			<button hx-post="api/auth/logout" class="bg-blue-500 text-white px-4 py-2 rounded">Logout</button>
 		} else {
 			<div>
 				<a href="/login" class="bg-green-400 text-white rounded px-4 py-2 ">Login</a>

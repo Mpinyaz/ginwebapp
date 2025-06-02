@@ -9,6 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import "github.com/Mpinyaz/GinWebApp/internal/dtos"
+import "github.com/Mpinyaz/GinWebApp/internal/views"
 
 func RegisterForm(formData dtos.FormData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -35,12 +36,12 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if hasFormError(formData, "form") {
+		if views.HasFormError(formData, "form") {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"mb-6 p-4 bg-red-50 border border-red-900 rounded-lg\"><div class=\"flex items-start\"><svg class=\"h-5 w-5 text-red-400 mr-2 mt-0.5 flex-shrink-0\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z\" clip-rule=\"evenodd\"></path></svg><div class=\"font-medium text-red-800 px-5\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			for _, error := range getFormErrors(formData, "form") {
+			for _, error := range views.GetFormErrors(formData, "form") {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"mb-1 last:mb-0\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -48,7 +49,7 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 				var templ_7745c5c3_Var2 string
 				templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(error)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 32, Col: 44}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 33, Col: 44}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 				if templ_7745c5c3_Err != nil {
@@ -68,7 +69,7 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var3 = []any{inputStyle(formData, "username")}
+		var templ_7745c5c3_Var3 = []any{views.InputStyle(formData, "username")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var3...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -78,9 +79,9 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(getFormValue(formData, "username"))
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(views.GetFormValue(formData, "username"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 55, Col: 49}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 56, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -103,12 +104,12 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if hasFormError(formData, "username") {
+		if views.HasFormError(formData, "username") {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<ul class=\"mt-1 text-sm text-red-600 list-disc px-5\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			for _, error := range getFormErrors(formData, "username") {
+			for _, error := range views.GetFormErrors(formData, "username") {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<li class=\"mb-1 last:mb-0\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -116,7 +117,7 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(error)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 62, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 63, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -136,7 +137,7 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var7 = []any{inputStyle(formData, "email")}
+		var templ_7745c5c3_Var7 = []any{views.InputStyle(formData, "email")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var7...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -146,9 +147,9 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var8 string
-		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(getFormValue(formData, "email"))
+		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(views.GetFormValue(formData, "email"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 76, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 77, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -171,12 +172,12 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if hasFormError(formData, "email") {
+		if views.HasFormError(formData, "email") {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<ul class=\"mt-1 text-sm text-red-600 list-disc\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			for _, error := range getFormErrors(formData, "email") {
+			for _, error := range views.GetFormErrors(formData, "email") {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<li class=\"mb-1 last:mb-0\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -184,7 +185,7 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(error)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 83, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 84, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -204,7 +205,7 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var11 = []any{inputStyle(formData, "password")}
+		var templ_7745c5c3_Var11 = []any{views.InputStyle(formData, "password")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var11...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -226,12 +227,12 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if hasFormError(formData, "password") {
+		if views.HasFormError(formData, "password") {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<ul class=\"mt-1 text-sm text-red-600 list-disc px-5\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			for _, error := range getFormErrors(formData, "password") {
+			for _, error := range views.GetFormErrors(formData, "password") {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<li class=\"mb-1 last:mb-0\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -239,7 +240,7 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(error)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 103, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 104, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -259,7 +260,7 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var14 = []any{inputStyle(formData, "passwordconfirm")}
+		var templ_7745c5c3_Var14 = []any{views.InputStyle(formData, "passwordconfirm")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var14...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -281,12 +282,12 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if hasFormError(formData, "passwordconfirm") {
+		if views.HasFormError(formData, "passwordconfirm") {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<ul class=\"mt-1 text-sm text-red-600 list-disc px-5\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			for _, error := range getFormErrors(formData, "passwordconfirm") {
+			for _, error := range views.GetFormErrors(formData, "passwordconfirm") {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<li class=\"mb-1 last:mb-0\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -294,7 +295,7 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(error)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 126, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/views/components/registerform.templ`, Line: 127, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -310,47 +311,12 @@ func RegisterForm(formData dtos.FormData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</div><button type=\"submit\" class=\"w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] focus:ring-4 focus:ring-orange-500/30 focus:outline-none shadow-lg hover:shadow-xl\">Create Account</button></form><div class=\"mt-8 text-center\"><ul class=\"text-gray-600\">Already have an account?<li href=\"/login\" hx-boost=\"true\" class=\"font-semibold text-orange-600 hover:text-orange-700 transition-colors duration-200 ml-1 hover:underline\">Log In</li></ul></div></div></div></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</div><button type=\"submit\" class=\"w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] focus:ring-4 focus:ring-orange-500/30 focus:outline-none shadow-lg hover:shadow-xl\">Create Account</button></form><div class=\"mt-8 text-center\"><div class=\"text-gray-600\">Already have an account? <a href=\"/login\" hx-boost=\"true\" class=\"font-semibold text-orange-600 hover:text-orange-700 transition-colors duration-200 ml-1 hover:underline\">Log In</a></div></div></div></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		return nil
 	})
-}
-
-func hasFormError(formData dtos.FormData, field string) bool {
-	errors, exists := formData.Errors[field]
-	return exists && len(errors) > 0
-}
-
-func getFormErrors(formData dtos.FormData, field string) []string {
-	if errors, exists := formData.Errors[field]; exists && len(errors) > 0 {
-		return errors
-	}
-	return []string{}
-}
-
-func getFormError(formData dtos.FormData, field string) string {
-	if errors, exists := formData.Errors[field]; exists && len(errors) > 0 {
-		return errors[0] // Return the first error message for single error display
-	}
-	return ""
-}
-
-func getFormValue(formData dtos.FormData, field string) string {
-	if value, exists := formData.Values[field]; exists {
-		return value
-	}
-	return ""
-}
-
-func inputStyle(formData dtos.FormData, field string) string {
-	baseClasses := "w-full px-4 py-3 border rounded-xl focus:ring-2 transition-all duration-200 placeholder-gray-400"
-
-	if hasFormError(formData, field) {
-		return baseClasses + " border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50"
-	}
-	return baseClasses + " border-gray-300 focus:ring-orange-500 focus:border-orange-500 bg-gray-50"
 }
 
 var _ = templruntime.GeneratedTemplate
