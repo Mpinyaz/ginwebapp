@@ -7,6 +7,8 @@ import (
 
 	"github.com/Mpinyaz/GinWebApp/config"
 	"github.com/Mpinyaz/GinWebApp/internal/auth"
+	"github.com/Mpinyaz/GinWebApp/internal/utils"
+	"github.com/Mpinyaz/GinWebApp/internal/views/pages"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
@@ -35,7 +37,7 @@ func (am *AuthMiddleware) VerifyAccessTokenMiddleware(tokenPublicKey string) gin
 			var err error
 			accessToken, err = ctx.Cookie("access_token")
 			if err != nil {
-				ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "You are not logged in"})
+				utils.Render(ctx, http.StatusUnauthorized, pages.PageNotFound("Access Invalid"))
 				return
 			}
 		}
@@ -43,7 +45,7 @@ func (am *AuthMiddleware) VerifyAccessTokenMiddleware(tokenPublicKey string) gin
 		// Verify the access token
 		claims, err := am.AuthService.VerifyAccessToken(accessToken, tokenPublicKey)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "Invalid access token: " + err.Error()})
+			utils.Render(ctx, http.StatusUnauthorized, pages.PageNotFound("Access Invalid"))
 			return
 		}
 

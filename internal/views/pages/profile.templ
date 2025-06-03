@@ -1,0 +1,14 @@
+package pages
+
+import "github.com/Mpinyaz/GinWebApp/internal/views/layouts"
+import "github.com/Mpinyaz/GinWebApp/internal/views/components"
+import "github.com/Mpinyaz/GinWebApp/internal/dtos"
+
+templ Profile(isLoggedIn bool, user *dtos.UserResponse) {
+	@layouts.BaseLayout("User Profile") {
+		@components.NavBar(isLoggedIn)
+		<section class="min-h-screen bg-black flex items-center justify-center  px-4 py-12">
+			@components.ProfileCard(user)
+		</section>
+	}
+}

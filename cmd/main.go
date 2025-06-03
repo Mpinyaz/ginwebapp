@@ -41,7 +41,7 @@ func main() {
 
 	router.Use(cors.New(corsConfig))
 
-	routes.ViewRoutes(router)
+	routes.ViewRoutes(router, dbConn, redisClient, cfg, &ctx)
 	routes.AuthRoutes(router, dbConn, redisClient, cfg, &ctx)
 	router.NoRoute(handlers.NotFound)
 
